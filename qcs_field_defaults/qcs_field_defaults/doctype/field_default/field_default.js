@@ -74,8 +74,7 @@ function set_fieldname_options(frm) {
 		let allowed_types = ["Link", "Select", "Data", "Int", "Check"];
 		let options = meta.fields
 			.filter(
-				(f) =>
-					allowed_types.includes(f.fieldtype) && !f.hidden && f.fieldname !== "name",
+				(f) => allowed_types.includes(f.fieldtype) && !f.hidden && f.fieldname !== "name"
 			)
 			.map((f) => ({
 				label: `${f.label} (${f.fieldname})`,
