@@ -4,6 +4,21 @@
 import frappe
 
 
+def _get_doc_and_custom_fields(fieldtype, options):
+	"""Fetch matching rows from DocField + Custom Field with a unified shape."""
+	doc_rows = frappe.get_all(
+		"DocField",
+		filters={"fieldtype": fieldtype, "options": ["in", options]},
+		fields=["parent", "fieldname", "options"],
+	)
+	custom_rows = frappe.get_all(
+		"Custom Field",
+		filters={"fieldtype": fieldtype, "options": ["in", options]},
+		fields=["dt as parent", "fieldname", "options"],
+	)
+	return doc_rows + custom_rows
+
+
 def _get_resolved_defaults_by_link_doctype(user=None):
 	"""Return resolved defaults keyed by Link options DocType for the given user.
 
@@ -105,7 +120,7 @@ def get_field_defaults_for_doctype(doctype, user=None):
 		for child_df in child_meta.fields:
 			if child_df.fieldtype == "Link" and child_df.options in defaults_by_link_doctype:
 				value = _get_default_value_for_field(
-					defaults_by_link_doctype, child_df.options, child_df.fieldname, child_dt
+					defaults_by_link_doctype, child_df.options, child_df.fieldname, doctype
 				)
 				if value is not None:
 					child_defaults.setdefault(child_dt, {})
@@ -130,11 +145,7 @@ def get_all_field_defaults_for_user(user=None):
 
 	result = {}
 	link_doctypes = list(defaults_by_link_doctype.keys())
-	link_fields = frappe.get_all(
-		"DocField",
-		filters={"fieldtype": "Link", "options": ["in", link_doctypes]},
-		fields=["parent", "fieldname", "options"],
-	)
+	link_fields = _get_doc_and_custom_fields("Link", link_doctypes)
 	if not link_fields:
 		return {}
 
@@ -144,29 +155,29 @@ def get_all_field_defaults_for_user(user=None):
 
 	child_table_links = []
 	if child_doctypes:
-		child_table_links = frappe.get_all(
-			"DocField",
-			filters={"fieldtype": "Table", "options": ["in", list(child_doctypes)]},
-			fields=["parent", "options"],
-		)
+		child_table_links = _get_doc_and_custom_fields("Table", list(child_doctypes))
 
 	child_to_parents = {}
 	for row in child_table_links:
 		child_to_parents.setdefault(row.options, set()).add(row.parent)
 
 	for df in link_fields:
-		default_value = _get_default_value_for_field(
-			defaults_by_link_doctype, df.options, df.fieldname, df.parent
-		)
-		if default_value is None:
-			continue
-
 		if df.parent in child_doctypes:
 			for parent_dt in child_to_parents.get(df.parent, set()):
+				default_value = _get_default_value_for_field(
+					defaults_by_link_doctype, df.options, df.fieldname, parent_dt
+				)
+				if default_value is None:
+					continue
 				result.setdefault(parent_dt, {"parent": {}, "children": {}})
 				result[parent_dt]["children"].setdefault(df.parent, {})
 				result[parent_dt]["children"][df.parent][df.fieldname] = default_value
 		else:
+			default_value = _get_default_value_for_field(
+				defaults_by_link_doctype, df.options, df.fieldname, df.parent
+			)
+			if default_value is None:
+				continue
 			result.setdefault(df.parent, {"parent": {}, "children": {}})
 			result[df.parent]["parent"][df.fieldname] = default_value
 
