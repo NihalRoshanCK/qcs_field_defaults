@@ -6,9 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "reference_doctype",
-  "child_doctype",
-  "fieldname",
-  "field_doctype",
+  "apply_to_all_fields",
+  "target_doctype",
   "default_value",
   "column_break_assignment",
   "user",
@@ -25,36 +24,26 @@
    "reqd": 1
   },
   {
-   "depends_on": "reference_doctype",
-   "fieldname": "child_doctype",
-   "fieldtype": "Link",
+   "default": "1",
+   "fieldname": "apply_to_all_fields",
+   "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Child DocType",
+   "label": "Apply To All Fields"
+  },
+  {
+   "depends_on": "eval:!doc.apply_to_all_fields",
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "label": "Target DocType",
    "options": "DocType"
   },
   {
    "depends_on": "reference_doctype",
-   "fieldname": "fieldname",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Field",
-   "reqd": 1
-  },
-  {
-   "fieldname": "field_doctype",
-   "fieldtype": "Link",
-   "hidden": 1,
-   "label": "Field DocType",
-   "options": "DocType",
-   "read_only": 1
-  },
-  {
-   "depends_on": "fieldname",
    "fieldname": "default_value",
    "fieldtype": "Dynamic Link",
    "in_list_view": 1,
    "label": "Default Value",
-   "options": "field_doctype",
+   "options": "reference_doctype",
    "reqd": 1
   },
   {
